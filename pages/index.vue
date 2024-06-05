@@ -4,43 +4,33 @@ import { Geolocation } from '@capacitor/geolocation';
 const location = ref('Latitude: 0, Longitude: 0');
 const latitude = ref();
 const longitude = ref();
-
 const oldLatitude = ref();
 const oldLongitude = ref();
-
-const acceptedPermissions = ref(false);
+const distance = ref(0);
 
 async function getLocation () {
-  if (!acceptedPermissions.value) {
-    const permission = await Geolocation.checkPermissions();
+  oldLatitude.value = latitude.value;
+  oldLongitude.value = longitude.value;
 
-    if(permission.location === 'denied') {
-      const permission = await Geolocation.requestPermissions();
-      if(permission.location === 'denied') {
-        // eslint-disable-next-line no-alert
-        alert('Você precisa permitir o acesso a localização para continuar');
-        return;
+  setInterval(() => {
+    Geolocation.getCurrentPosition().then((position) => {
+      latitude.value = position.coords.latitude;
+      longitude.value = position.coords.longitude;
+      location.value = `Latitude: ${latitude.value}, Longitude: ${longitude.value}`;
+
+      if(oldLatitude.value && oldLongitude.value) {
+        const dist = calculateDistance(
+          { latitude: oldLatitude.value, longitude: oldLongitude.value },
+          { latitude: latitude.value, longitude: longitude.value }
+        );
+        distance.value += dist;
       }
-    }
 
-
-    acceptedPermissions.value = true;
-  }
-
-  const coordinates = await Geolocation.getCurrentPosition();
-  latitude.value = coordinates.coords.latitude;
-  longitude.value = coordinates.coords.longitude;
-  location.value = `Latitude: ${latitude.value}, Longitude: ${longitude.value}`;
+      oldLatitude.value = latitude.value;
+      oldLongitude.value = longitude.value;
+    });
+  }, 5000);
 }
-
-setInterval(() => {
-  getLocation();
-
-  if (latitude.value && longitude.value) {
-    oldLatitude.value = latitude.value;
-    oldLongitude.value = longitude.value;
-  }
-}, 5000);
 
 function calculateDistance(coord1: { latitude: number; longitude: number; }, coord2: { latitude: number; longitude: number; }) {
   const R = 6371e3; // raio médio da Terra em metros
@@ -58,18 +48,18 @@ function calculateDistance(coord1: { latitude: number; longitude: number; }, coo
   return distance;
 }
 
-//Computed para ver quanto o usuário se moveu em relação a posição anterior (Em metros)
-const distance = computed(() => {
-  if (oldLatitude.value && oldLongitude.value) {
-    return calculateDistance({
-      latitude: oldLatitude.value,
-      longitude: oldLongitude.value
-    }, {
-      latitude: latitude.value,
-      longitude: longitude.value
-    });
-  }
-  return 0;
+function getPermission() {
+  Geolocation.requestPermissions().then((permission) => {
+    if(permission.location === 'denied') {
+      // eslint-disable-next-line no-alert
+      alert('Você precisa permitir o acesso a localização para continuar');
+    }
+  });
+}
+
+onMounted(() => {
+  getPermission();
+  getLocation();
 });
 </script>
 

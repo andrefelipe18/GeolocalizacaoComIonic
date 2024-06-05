@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: "io.onuxt.ionic",
   appName: "onuxt-ionic",
   webDir: "dist",
+  
 }
 
 export default config
