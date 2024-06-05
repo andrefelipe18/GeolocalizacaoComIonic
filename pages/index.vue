@@ -8,26 +8,29 @@ const longitude = ref();
 const oldLatitude = ref();
 const oldLongitude = ref();
 
+const acceptedPermissions = ref(false);
+
 async function getLocation () {
-  //Verify if the user has granted permission to access the location
-  const permission = await Geolocation.checkPermissions();
+  if (!acceptedPermissions.value) {
+    const permission = await Geolocation.checkPermissions();
 
-
-  if(permission.location === 'denied') {
-    const permission = await Geolocation.requestPermissions();
     if(permission.location === 'denied') {
-      // eslint-disable-next-line no-alert
-      alert('Você precisa permitir o acesso a localização para continuar');
-      return;
+      const permission = await Geolocation.requestPermissions();
+      if(permission.location === 'denied') {
+        // eslint-disable-next-line no-alert
+        alert('Você precisa permitir o acesso a localização para continuar');
+        return;
+      }
     }
+
+
+    acceptedPermissions.value = true;
   }
 
   const coordinates = await Geolocation.getCurrentPosition();
   latitude.value = coordinates.coords.latitude;
   longitude.value = coordinates.coords.longitude;
   location.value = `Latitude: ${latitude.value}, Longitude: ${longitude.value}`;
-
-
 }
 
 setInterval(() => {
